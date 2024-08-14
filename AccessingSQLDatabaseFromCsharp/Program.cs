@@ -7,7 +7,38 @@ namespace AccessingSQLDatabaseFromCsharp
     {
         static void Main(string[] args)
         {
-                TestQueries().Wait();
+            TestQueries().Wait();
+            //TestQueriesWithRepository().Wait();
+        }
+
+        static async Task TestQueriesWithRepository()
+        {
+            var connStr = @"Data Source=(localdb)\local;Initial Catalog=AccessingSQLDatabaseFromCsharp;Integrated Security=True;";
+            var conn = new SqlConnection(connStr);
+
+            var repo = new PersonRepository(conn);
+
+            int rowsDeleted = await repo.DeleteAll();
+
+            int rowsInserted1 = await repo.Create(new Person("Audun", "Nicolaisen", 2001));
+            int rowsInserted2 = await repo.Create(new Person("Per", null, 1980));
+            int rowsInserted3 = await repo.Create(new Person("Pål", null, 1981));
+
+            IEnumerable<Person> persons = await repo.ReadAll();
+
+            Person audun = await repo.ReadOneByName("Audun");
+
+            audun.FirstName = "Petter";
+            audun.LastName = "Pettersen";
+            int rowsAffected2 = await repo.Update(audun);
+            //int rowsAffected2 = await repo.Update(new Person("Petter", "Pettersen", 2001, audun.Id));
+
+            persons = await repo.ReadAll();
+
+            int rowsAffected3 = await repo.DeleteOne(audun);
+            //int rowsAffected3 = await repo.DeleteOne(audun.Id);
+
+            persons = await repo.ReadAll();
         }
 
         static async Task TestQueries()
