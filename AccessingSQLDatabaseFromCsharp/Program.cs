@@ -7,11 +7,18 @@ namespace AccessingSQLDatabaseFromCsharp
     {
         static void Main(string[] args)
         {
-            TestQueries().Wait();
-            //TestQueriesWithRepository().Wait();
+            var connStr = @"Data Source=(localdb)\local;Initial Catalog=AccessingSQLDatabaseFromCsharp;Integrated Security=True;";
+            var conn = new SqlConnection(connStr);
+            var repo = new Repository<Person>(conn);
+
+            repo.DeleteAll().Wait();
+            repo.Create(new Person(){FirstName = "Audun", LastName = "Nicolaisen", BirthYear = 2001}).Wait();
+
+            //TestQueries().Wait();
+            //TestQueriesWithPersonRepository().Wait();
         }
 
-        static async Task TestQueriesWithRepository()
+        static async Task TestQueriesWithPersonRepository()
         {
             var connStr = @"Data Source=(localdb)\local;Initial Catalog=AccessingSQLDatabaseFromCsharp;Integrated Security=True;";
             var conn = new SqlConnection(connStr);
@@ -20,9 +27,9 @@ namespace AccessingSQLDatabaseFromCsharp
 
             int rowsDeleted = await repo.DeleteAll();
 
-            int rowsInserted1 = await repo.Create(new Person("Audun", "Nicolaisen", 2001));
-            int rowsInserted2 = await repo.Create(new Person("Per", null, 1980));
-            int rowsInserted3 = await repo.Create(new Person("Pål", null, 1981));
+            int rowsInserted1 = await repo.Create(new Person(){FirstName = "Audun", LastName = "Nicolaisen", BirthYear = 2001 });
+            int rowsInserted2 = await repo.Create(new Person(){FirstName = "Per", LastName = null, BirthYear = 1980 });
+            int rowsInserted3 = await repo.Create(new Person(){FirstName = "Pål", LastName = null, BirthYear = 1981 });
 
             IEnumerable<Person> persons = await repo.ReadAll();
 

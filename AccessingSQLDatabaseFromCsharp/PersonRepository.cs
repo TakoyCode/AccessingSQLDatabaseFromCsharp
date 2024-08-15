@@ -1,4 +1,5 @@
 ﻿using System.Data.SqlClient;
+using System.Reflection;
 using Dapper;
 
 namespace AccessingSQLDatabaseFromCsharp
