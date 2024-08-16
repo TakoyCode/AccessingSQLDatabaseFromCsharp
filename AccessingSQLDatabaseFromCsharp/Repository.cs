@@ -1,12 +1,11 @@
-﻿using System;
+﻿using Dapper;
 using System.Data.SqlClient;
 using System.Reflection;
-using Dapper;
 
 
 namespace AccessingSQLDatabaseFromCsharp
 {
-    internal class Repository<T>
+    internal class Repository<T> where T : class
     {   
             private SqlConnection _connection;
 
@@ -39,12 +38,18 @@ namespace AccessingSQLDatabaseFromCsharp
                 //}
                 //return paramsList;
             }
-
-        public async Task<IEnumerable<Person>> ReadAll()
+            private static string GetSetters(PropertyInfo[] props)
             {
-                var sql = @"SELECT Id, FirstName, LastName, BirthYear 
-                        FROM Person";
-                return await _connection.QueryAsync<Person>(sql);
+                return string.Join(',', props.Where(p => p.Name != "Id").Select(p => p.Name + " = @" + p.Name));
+            }
+
+            public async Task<IEnumerable<T>> ReadAll()
+            {
+                var type = typeof(T);
+                var props = type.GetProperties();
+
+                var sql = $"SELECT Id, {GetParams(props)} FROM {type.Name}";
+                return await _connection.QueryAsync<T>(sql);
             }
 
             public async Task<IEnumerable<Person>> ReadYoungerThan(int birthYearMin)
@@ -55,12 +60,13 @@ namespace AccessingSQLDatabaseFromCsharp
                 return await _connection.QueryAsync<Person>(sql, new { BirthYearMin = birthYearMin });
             }
 
-            public async Task<Person> ReadOneById(int id)
+            public async Task<T> ReadOneById(int id)
             {
-                var sql = @"SELECT Id, FirstName, LastName, BirthYear
-                        FROM Person
-                        WHERE Id = @Id";
-                return await _connection.QueryFirstOrDefaultAsync<Person>(sql, new { Id = id });
+                var type = typeof(T);
+                var props = type.GetProperties();
+
+                var sql = $"SELECT Id, {GetParams(props)} FROM {type} WHERE Id = @Id";
+                return await _connection.QueryFirstOrDefaultAsync<T>(sql, new { Id = id });
             }
 
             public async Task<Person> ReadOneByName(string firstName)
@@ -71,12 +77,13 @@ namespace AccessingSQLDatabaseFromCsharp
                 return await _connection.QueryFirstOrDefaultAsync<Person>(sql, new { FirstName = firstName });
             }
 
-            public async Task<int> Update(Person person)
+            public async Task<int> Update(T obj)
             {
-                var sql = @"UPDATE Person 
-                       SET LastName = @LastName, FirstName = @FirstName, BirthYear = @BirthYear
-                       WHERE Id = @Id";
-                return await _connection.ExecuteAsync(sql, person);
+                var type = typeof(T);
+                var props = type.GetProperties();
+
+                var sql = $"UPDATE {type.Name} SET {GetSetters(props)} WHERE Id = @Id";
+                return await _connection.ExecuteAsync(sql, obj);
             }
 
             public async Task<int> Update(int id, string firstName, string lastName, int birthYear)
@@ -89,27 +96,16 @@ namespace AccessingSQLDatabaseFromCsharp
 
             public async Task<int> DeleteAll()
             {
-                var sql = @"DELETE FROM Person";
+                var type = typeof(T);
+                var sql = $"DELETE FROM {type.Name}";
                 return await _connection.ExecuteAsync(sql);
             }
 
-            public async Task<int> DeleteOne(int id)
+            public async Task<int> DeleteOne(T? obj = null, int? id = null)
             {
-                var sql = @"DELETE FROM Person WHERE Id = @Id";
-                return await _connection.ExecuteAsync(sql, new { Id = id });
-            }
-
-            public async Task<int> DeleteOne(Person person)
-            {
-                var sql = @"DELETE FROM Person WHERE Id = @Id";
-                return await _connection.ExecuteAsync(sql, person);
-            }
-
-            // Samler de metodene over inni en metode, så man slipper å repetere så mye kode
-            public async Task<int> DeleteOne(Person person = null, int? id = null)
-            {
-                var sql = @"DELETE FROM Person WHERE Id = @Id";
-                return await _connection.ExecuteAsync(sql, person ?? (object)new { Id = id.Value });
+                var type = typeof(T);
+                var sql = $"DELETE FROM {type.Name} WHERE Id = @Id";
+                return await _connection.ExecuteAsync(sql, obj ?? (object)new { Id = id.Value });
             }
         }
     }
