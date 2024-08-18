@@ -15,6 +15,9 @@ namespace AccessingSQLDatabaseFromCsharp
             repo.Create(new Person(){FirstName = "Audun", LastName = "Nicolaisen", BirthYear = 2001}).Wait();
             repo.ReadAll().Wait();
 
+            var carRepo = new CarRepository(conn);
+            var cars = carRepo.ReadAll();
+
             //TestQueries().Wait();
             //TestQueriesWithPersonRepository().Wait();
         }
